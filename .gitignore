@@ -4,3 +4,4 @@ log/
 
 *.workspace
 *.user
+*.qtc_clangd
