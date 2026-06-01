@@ -18,11 +18,11 @@ public:
         Node("trajectory_publisher_node")
     {
         // коэффициент преобразования пиксельного смещения в метрическое
-        this->declare_parameter("pixel2meter", 0.001);
-        pixel2meter = this->get_parameter("pixel2meter").as_double();
+        this->declare_parameter("counts2meters", 0.001);
+        counts2meters = this->get_parameter("counts2meters").as_double();
 
-        // расстояние между камерами по Y
-        this->declare_parameter("baseline", 0.46);
+        // расстояние от центра до каждой камеры
+        this->declare_parameter("baseline", 0.23);
         baseline = this->get_parameter("baseline").as_double();
 
         // смещение камер по X
@@ -68,36 +68,19 @@ private:
     double x = 0.0, y = 0.0, theta = 0.0;
 
     // параметры для вычисления траектории
-    double pixel2meter;
-    double baseline;
-    double forward_offset;
-
-    // double rx_sum, ry_sum, lx_sum, ly_sum;
+    double counts2meters;   // коэффициент преобразования отсчетов датчика в метры
+    double baseline;        // расстояние от центра до каждого датчика
+    double forward_offset;  // смещение датчиков по оси X
 
     // получаем синхронизированные смещения из топиков и вычисляем траекторию
     void callback(const geometry_msgs::msg::PointStamped::ConstSharedPtr &r_point,
                   const geometry_msgs::msg::PointStamped::ConstSharedPtr &l_point)
     {
         // сохраняем данные о смещении из соответствующих полей
-        double r_dx = r_point->point.x * pixel2meter;
-        double r_dy = r_point->point.y * pixel2meter;
-        double l_dx = l_point->point.x * pixel2meter;
-        double l_dy = l_point->point.y * pixel2meter;
-
-        // выводим значения для отладки
-        // RCLCPP_INFO(this->get_logger(), "r_dx = %.4f, r_dy = %.4f, l_dx = %.4f, l_dy = %.4f", r_dx, r_dy, l_dx, l_dy);
-
-        // rx_sum += r_dx;
-        // ry_sum += r_dy;
-        // lx_sum += l_dx;
-        // ly_sum += l_dy;
-
-        // RCLCPP_INFO(this->get_logger(), "r_dx = %.4f, r_dy = %.4f, l_dx = %.4f, l_dy = %.4f", rx_sum, ry_sum, lx_sum, ly_sum);
-
-        // Фильтрация малых шумов (опционально)
-        // double delta = 1e-7;
-        // if (fabs(r_dx) < delta && fabs(l_dx) < delta && fabs(r_dy) < delta && fabs(l_dy) < delta)
-        //     return;
+        double r_dx = r_point->point.x * counts2meters;
+        double r_dy = r_point->point.y * counts2meters;
+        double l_dx = l_point->point.x * counts2meters;
+        double l_dy = l_point->point.y * counts2meters;
 
         // вычисляем угловое приращение в радианах
         double dtheta = (r_dx - l_dx) / baseline;
@@ -116,6 +99,7 @@ private:
         x += dx_global;
         y += dy_global;
         theta += dtheta;
+        // нормализуем угол ориентации
         theta = atan2(sin(theta), cos(theta));
 
         // выводим значения для оценки точности

@@ -16,7 +16,7 @@ def generate_launch_description():
 
             parameters = [
                 {
-                    "pixel2meter": 0.001,
+                    "counts2meters": 0.000532,
                     "baseline": 0.46,
                     "forward_offset": 0.072
                 }
