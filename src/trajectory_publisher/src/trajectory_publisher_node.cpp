@@ -10,6 +10,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <math.h>
+#include <vector>
 
 class TrajectoryPublisher : public rclcpp::Node
 {
@@ -42,8 +43,7 @@ public:
                                          std::placeholders::_2));
 
         // публикатор траектории
-        pose_pub = this->create_publisher<geometry_msgs::msg::PoseStamped>(
-            "/trajectory", 10);
+        path_pub = this->create_publisher<nav_msgs::msg::Path>("robot_path", 10);
     }
 private:
     // фильтры-подписчики на смещения изображения с камер
@@ -61,8 +61,8 @@ private:
     // публикатор траектории с учетом ориентации
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub;
 
-    // публикатор траектории
-    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub;
+    // вектор для хранения всех пройденных поз (история траектории)
+    std::vector<geometry_msgs::msg::PoseStamped> trajectory;
 
     // глобальные смещения
     double x = 0.0, y = 0.0, theta = 0.0;
@@ -120,8 +120,17 @@ private:
         q.setRPY(0, 0, theta);
         pose.pose.orientation = tf2::toMsg(q);
 
+        // добавляем текущее положение в историю
+        trajectory.push_back(pose);
+
+        // создаем сообщение типа Path и заполняем его
+        nav_msgs::msg::Path path_msg;
+        path_msg.header.stamp = this->now();
+        path_msg.header.frame_id = "odom";
+        path_msg.poses = trajectory;
+
         // публикуем траекторию
-        pose_pub->publish(pose);
+        path_pub->publish(path_msg);
     }
 };
 

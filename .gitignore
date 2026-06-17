@@ -2,6 +2,5 @@ build/
 install/
 log/
 
-*.workspace
 *.user
 *.qtc_clangd
